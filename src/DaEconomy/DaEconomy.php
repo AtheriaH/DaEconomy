@@ -19,7 +19,9 @@ class DaEconomy extends PluginBase {
     protected function onEnable(): void {
         $this->saveDefaultConfig();
         $this->database = new Config($this->getDataFolder() . "players.yml", Config::YAML);
-        $this->balances = $this->database->getAll();
+        
+        // FIX: Crucial array_change_key_case so capitalized names don't lose their data
+        $this->balances = array_change_key_case($this->database->getAll(), CASE_LOWER);
 
         $this->getServer()->getCommandMap()->registerAll("daeconomy", [
             new MoneyCommand($this),
@@ -27,6 +29,7 @@ class DaEconomy extends PluginBase {
             new RemoveMoneyCommand($this)
         ]);
 
+        // Saves data every 5 minutes in the background without causing lag
         $this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function (): void {
             $this->saveDatabase();
         }), 20 * 60 * 5);
