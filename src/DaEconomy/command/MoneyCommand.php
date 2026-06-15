@@ -8,7 +8,7 @@ use DaEconomy\DaEconomy;
 use pocketmine\command\Command;
 use pocketmine\command\CommandSender;
 use pocketmine\player\Player;
-use pocketmine\utils\TextFormat;
+use pocketmine\utils\TextFormat as TF;
 
 class MoneyCommand extends Command {
 
@@ -18,19 +18,15 @@ class MoneyCommand extends Command {
     }
 
     public function execute(CommandSender $sender, string $commandLabel, array $args): bool {
-        if (!$this->testPermission($sender)) {
-            return false;
-        }
-
         $targetName = $args[0] ?? null;
 
         if ($targetName === null) {
             if (!$sender instanceof Player) {
-                $sender->sendMessage(TextFormat::RED . "Please specify a player name from the console.");
+                $sender->sendMessage(TF::RED . "Please specify a player name from the console.");
                 return false;
             }
             $balance = $this->plugin->getBalance($sender->getName());
-            $sender->sendMessage(TextFormat::GREEN . "Your Balance: " . TextFormat::YELLOW . $this->plugin->formatMoney($balance));
+            $sender->sendMessage(TF::GREEN . "Your Balance: " . TF::YELLOW . $this->plugin->formatMoney($balance));
             return true;
         }
 
@@ -38,7 +34,8 @@ class MoneyCommand extends Command {
         $realName = $target !== null ? $target->getName() : $targetName;
         
         $balance = $this->plugin->getBalance($realName);
-        $sender->sendMessage(TextFormat::GREEN . $realName . "'s Balance: " . TextFormat::YELLOW . $this->plugin->formatMoney($balance));
+        $sender->sendMessage(TF::GREEN . $realName . "'s Balance: " . TF::YELLOW . $this->plugin->formatMoney($balance));
+        
         return true;
     }
 }
