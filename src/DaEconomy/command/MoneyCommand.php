@@ -17,17 +17,18 @@ class MoneyCommand extends Command {
         $this->setPermission("daeconomy.command.money");
     }
 
-    public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+    // FIX: Back to : bool, otherwise PM5 completely crashes
+    public function execute(CommandSender $sender, string $commandLabel, array $args): bool {
         $targetName = $args[0] ?? null;
 
         if ($targetName === null) {
             if (!$sender instanceof Player) {
                 $sender->sendMessage(TextFormat::RED . "Please specify a player name from the console.");
-                return;
+                return false;
             }
             $balance = $this->plugin->getBalance($sender->getName());
             $sender->sendMessage(TextFormat::GREEN . "Your Balance: " . TextFormat::YELLOW . $this->plugin->formatMoney($balance));
-            return;
+            return true;
         }
 
         $target = $this->plugin->getServer()->getPlayerByPrefix($targetName);
@@ -35,5 +36,6 @@ class MoneyCommand extends Command {
         
         $balance = $this->plugin->getBalance($realName);
         $sender->sendMessage(TextFormat::GREEN . $realName . "'s Balance: " . TextFormat::YELLOW . $this->plugin->formatMoney($balance));
+        return true;
     }
 }
