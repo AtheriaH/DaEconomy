@@ -16,17 +16,17 @@ class RemoveMoneyCommand extends Command {
         $this->setPermission("daeconomy.command.admin");
     }
 
-    public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+    public function execute(CommandSender $sender, string $commandLabel, array $args): bool {
         if (count($args) < 2) {
             $sender->sendMessage(TextFormat::RED . "Usage: " . $this->getUsage());
-            return;
+            return false;
         }
 
         $amount = (int) $args[1];
         
         if ($amount <= 0) {
             $sender->sendMessage(TextFormat::RED . "Please enter a valid amount greater than zero.");
-            return;
+            return false;
         }
 
         $target = $this->plugin->getServer()->getPlayerByPrefix($args[0]);
@@ -36,5 +36,6 @@ class RemoveMoneyCommand extends Command {
         $sender->sendMessage(TextFormat::GREEN . "Successfully removed " . $this->plugin->formatMoney($amount) . " from " . $realName);
         
         $target?->sendMessage(TextFormat::RED . $this->plugin->formatMoney($amount) . " was deducted from your balance.");
+        return true;
     }
 }
