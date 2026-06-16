@@ -25,6 +25,9 @@ class DaEconomy extends PluginBase {
         // Initialize our custom YAML engine
         $this->provider = new YamlProvider($this->getDataFolder());
         $this->provider->open(); $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
+$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
+$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
+
 
 
         // The true PM5 way to auto-save every 5 minutes without lagging the server
