@@ -6,59 +6,67 @@ namespace DaEconomy;
 
 use DaEconomy\provider\Provider;
 use DaEconomy\provider\YamlProvider;
+use DaEconomy\listener\PlayerListener;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\Task;
+use pocketmine\utils\Config;
 
 class DaEconomy extends PluginBase {
 
     private static self $instance;
     private Provider $provider;
+    private Config $nameCache;
 
     protected function onLoad(): void {
         self::$instance = $this;
     }
 
-       protected function onEnable(): void {
-        // Create the plugin folder if it doesn't exist
+    protected function onEnable(): void {
         @mkdir($this->getDataFolder());
 
-        // Initialize our custom YAML engine
         $this->provider = new YamlProvider($this->getDataFolder());
         $this->provider->open();
 
-        // Register Commands (Exactly one of each!)
+        // Create the Name Cache file
+        $this->nameCache = new Config($this->getDataFolder() . "names.yml", Config::YAML);
+
+        // Register the Event Listener so it tracks players joining
+        $this->getServer()->getPluginManager()->registerEvents(new PlayerListener($this), $this);
+
+        // Register Commands
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\SetMoneyCommand($this));
+        $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\TopMoneyCommand($this));
 
-$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\TopMoneyCommand($this));
-
-
-        // The true PM5 way to auto-save every 5 minutes without lagging the server
-        $this->getScheduler()->scheduleRepeatingTask(new class($this->provider) extends Task {
-            public function __construct(private Provider $provider) {}
-
+        // Auto-save task
+        $this->getScheduler()->scheduleRepeatingTask(new class($this->provider, $this->nameCache) extends Task {
+            public function __construct(private Provider $provider, private Config $nameCache) {}
             public function onRun(): void {
                 $this->provider->save();
+                $this->nameCache->save();
             }
         }, 20 * 60 * 5);
         
-        $this->getLogger()->info("DaEconomy has been enabled with strict XUID saving!");
+        $this->getLogger()->info("DaEconomy loaded with Name Caching!");
     }
 
     protected function onDisable(): void {
         if (isset($this->provider)) {
             $this->provider->close();
-            $this->getLogger()->info("DaEconomy database saved safely.");
+            $this->nameCache->save();
         }
     }
 
-    // This allows other plugins (like Shops) to easily grab our database engine
     public static function getInstance(): self {
         return self::$instance;
     }
 
     public function getProvider(): Provider {
         return $this->provider;
+    }
+
+    public function getNameCache(): Config {
+        return $this->nameCache;
     }
 }
