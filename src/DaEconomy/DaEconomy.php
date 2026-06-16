@@ -18,17 +18,18 @@ class DaEconomy extends PluginBase {
         self::$instance = $this;
     }
 
-    protected function onEnable(): void {
+       protected function onEnable(): void {
         // Create the plugin folder if it doesn't exist
         @mkdir($this->getDataFolder());
 
         // Initialize our custom YAML engine
         $this->provider = new YamlProvider($this->getDataFolder());
-        $this->provider->open(); $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
-$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
-$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
+        $this->provider->open();
 
-
+        // Register Commands (Exactly one of each!)
+        $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
+        $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
+        $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\SetMoneyCommand($this));
 
         // The true PM5 way to auto-save every 5 minutes without lagging the server
         $this->getScheduler()->scheduleRepeatingTask(new class($this->provider) extends Task {
