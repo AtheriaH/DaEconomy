@@ -6,6 +6,7 @@ namespace DaEconomy;
 
 use DaEconomy\provider\Provider;
 use DaEconomy\provider\YamlProvider;
+use DaEconomy\provider\MySQLProvider;
 use DaEconomy\listener\PlayerListener;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\Task;
@@ -23,8 +24,19 @@ class DaEconomy extends PluginBase {
 
     protected function onEnable(): void {
         @mkdir($this->getDataFolder());
+        
+        // MISSING LINK 1: Save the default config.yml from the resources folder
+        $this->saveDefaultConfig();
 
-        $this->provider = new YamlProvider($this->getDataFolder());
+        // MISSING LINK 2: The Database Router
+        $storageType = strtolower($this->getConfig()->get("storage-type", "yaml"));
+        
+        if ($storageType === "mysql" || $storageType === "sqlite") {
+            $this->provider = new MySQLProvider($this);
+        } else {
+            $this->provider = new YamlProvider($this->getDataFolder());
+        }
+        
         $this->provider->open();
 
         // Create the Name Cache file
@@ -38,6 +50,9 @@ class DaEconomy extends PluginBase {
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\SetMoneyCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\TopMoneyCommand($this));
+        
+        // MISSING LINK 3: The Bank Command Registration!
+        $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\BankCommand($this));
 
         // Auto-save task
         $this->getScheduler()->scheduleRepeatingTask(new class($this->provider, $this->nameCache) extends Task {
@@ -48,7 +63,8 @@ class DaEconomy extends PluginBase {
             }
         }, 20 * 60 * 5);
         
-        $this->getLogger()->info("DaEconomy loaded with Name Caching!");
+        // We dynamically announce which engine is running!
+        $this->getLogger()->info("DaEconomy loaded using the " . $this->provider->getName() . " engine!");
     }
 
     protected function onDisable(): void {
