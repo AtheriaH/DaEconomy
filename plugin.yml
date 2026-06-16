@@ -1,14 +1,7 @@
 name: DaEconomy
 version: 1.0.0
-api: [5.0.0]
 main: DaEconomy\DaEconomy
+api: 
+  - 5.0.0
 author: Atheria
-description: A high-performance, strictly typed economy framework. 
-
-permissions:
-  daeconomy.command.money:
-    default: true
-    description: Allows players to check balances.
-  daeconomy.command.admin:
-    default: op
-    description: Allows full administrative economy control.
+description:  XUID-based modern economy.
