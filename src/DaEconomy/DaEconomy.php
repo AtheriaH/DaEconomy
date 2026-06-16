@@ -4,67 +4,53 @@ declare(strict_types=1);
 
 namespace DaEconomy;
 
-use DaEconomy\command\AddMoneyCommand;
-use DaEconomy\command\MoneyCommand;
-use DaEconomy\command\RemoveMoneyCommand;
+use DaEconomy\provider\Provider;
+use DaEconomy\provider\YamlProvider;
 use pocketmine\plugin\PluginBase;
-use pocketmine\scheduler\ClosureTask;
-use pocketmine\utils\Config;
+use pocketmine\scheduler\Task;
 
 class DaEconomy extends PluginBase {
 
-    private Config $database;
-    private array $balances = [];
+    private static self $instance;
+    private Provider $provider;
+
+    protected function onLoad(): void {
+        self::$instance = $this;
+    }
 
     protected function onEnable(): void {
-        $this->saveDefaultConfig();
-        $this->database = new Config($this->getDataFolder() . "players.yml", Config::YAML);
+        // Create the plugin folder if it doesn't exist
+        @mkdir($this->getDataFolder());
+
+        // Initialize our custom YAML engine
+        $this->provider = new YamlProvider($this->getDataFolder());
+        $this->provider->open();
+
+        // The true PM5 way to auto-save every 5 minutes without lagging the server
+        $this->getScheduler()->scheduleRepeatingTask(new class($this->provider) extends Task {
+            public function __construct(private Provider $provider) {}
+
+            public function onRun(): void {
+                $this->provider->save();
+            }
+        }, 20 * 60 * 5);
         
-        // FIX: Crucial array_change_key_case so capitalized names don't lose their data
-        $this->balances = array_change_key_case($this->database->getAll(), CASE_LOWER);
-
-        $this->getServer()->getCommandMap()->registerAll("daeconomy", [
-            new MoneyCommand($this),
-            new AddMoneyCommand($this),
-            new RemoveMoneyCommand($this)
-        ]);
-
-        // Saves data every 5 minutes in the background without causing lag
-        $this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function (): void {
-            $this->saveDatabase();
-        }), 20 * 60 * 5);
+        $this->getLogger()->info("DaEconomy has been enabled with strict XUID saving!");
     }
 
     protected function onDisable(): void {
-        $this->saveDatabase();
-    }
-
-    private function saveDatabase(): void {
-        $this->database->setAll($this->balances);
-        $this->database->save();
-    }
-
-    public function getBalance(string $player): int {
-        return $this->balances[strtolower($player)] ?? (int) $this->getConfig()->get("starting-money", 1000);
-    }
-
-    public function setBalance(string $player, int $amount): void {
-        $this->balances[strtolower($player)] = max(0, $amount);
-    }
-
-    public function addBalance(string $player, int $amount): void {
-        if ($amount > 0) {
-            $this->setBalance($player, $this->getBalance($player) + $amount);
+        if (isset($this->provider)) {
+            $this->provider->close();
+            $this->getLogger()->info("DaEconomy database saved safely.");
         }
     }
 
-    public function removeBalance(string $player, int $amount): void {
-        if ($amount > 0) {
-            $this->setBalance($player, $this->getBalance($player) - $amount);
-        }
+    // This allows other plugins (like Shops) to easily grab our database engine
+    public static function getInstance(): self {
+        return self::$instance;
     }
 
-    public function formatMoney(int $amount): string {
-        return $this->getConfig()->get("currency-symbol", "$") . number_format($amount);
+    public function getProvider(): Provider {
+        return $this->provider;
     }
 }
