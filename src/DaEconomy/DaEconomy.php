@@ -9,7 +9,7 @@ use DaEconomy\provider\YamlProvider;
 use DaEconomy\provider\MySQLProvider;
 use DaEconomy\listener\PlayerListener;
 use pocketmine\plugin\PluginBase;
-use pocketmine\scheduler\Task;
+use pocketmine\scheduler\ClosureTask;
 use pocketmine\utils\Config;
 
 class DaEconomy extends PluginBase {
@@ -23,14 +23,16 @@ class DaEconomy extends PluginBase {
     }
 
     protected function onEnable(): void {
+        // Ensure the plugin folder exists
         @mkdir($this->getDataFolder());
         
-        // MISSING LINK 1: Save the default config.yml from the resources folder
+        // Save the default config.yml from the resources folder
         $this->saveDefaultConfig();
 
-        // MISSING LINK 2: The Database Router
-        $storageType = strtolower($this->getConfig()->get("storage-type", "yaml"));
+        // Prevent PHP 8 strict-type warnings by casting to string
+        $storageType = strtolower((string) $this->getConfig()->get("storage-type", "yaml"));
         
+        // Route to the correct database engine based on the config
         if ($storageType === "mysql" || $storageType === "sqlite") {
             $this->provider = new MySQLProvider($this);
         } else {
@@ -39,31 +41,25 @@ class DaEconomy extends PluginBase {
         
         $this->provider->open();
 
-        // Create the Name Cache file
+        // Initialize the Name Cache for leaderboards
         $this->nameCache = new Config($this->getDataFolder() . "names.yml", Config::YAML);
 
-        // Register the Event Listener so it tracks players joining
+        // Register the Event Listener
         $this->getServer()->getPluginManager()->registerEvents(new PlayerListener($this), $this);
 
-        // Register Commands
+        // Register all Commands
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\MoneyCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\SetMoneyCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\TopMoneyCommand($this));
-        
-        // MISSING LINK 3: The Bank Command Registration!
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\BankCommand($this));
 
-        // Auto-save task
-        $this->getScheduler()->scheduleRepeatingTask(new class($this->provider, $this->nameCache) extends Task {
-            public function __construct(private Provider $provider, private Config $nameCache) {}
-            public function onRun(): void {
-                $this->provider->save();
-                $this->nameCache->save();
-            }
-        }, 20 * 60 * 5);
+        // Fix PMMP Anonymous Task Warning by using a native ClosureTask
+        $this->getScheduler()->scheduleRepeatingTask(new ClosureTask(function(): void {
+            $this->provider->save();
+            $this->nameCache->save();
+        }), 20 * 60 * 5);
         
-        // We dynamically announce which engine is running!
         $this->getLogger()->info("DaEconomy loaded using the " . $this->provider->getName() . " engine!");
     }
 
