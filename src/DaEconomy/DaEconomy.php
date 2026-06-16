@@ -31,6 +31,9 @@ class DaEconomy extends PluginBase {
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\PayCommand($this));
         $this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\SetMoneyCommand($this));
 
+$this->getServer()->getCommandMap()->register("daeconomy", new \DaEconomy\command\TopMoneyCommand($this));
+
+
         // The true PM5 way to auto-save every 5 minutes without lagging the server
         $this->getScheduler()->scheduleRepeatingTask(new class($this->provider) extends Task {
             public function __construct(private Provider $provider) {}
